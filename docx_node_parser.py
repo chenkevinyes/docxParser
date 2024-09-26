@@ -44,10 +44,15 @@ def parse_file(fileName,chunk_size):
                 yield Paragraph(child, parent)
             elif isinstance(child, CT_Tbl):
                 yield Table(child, parent)
+            # else:
+            #     print(child)
 
     def convert2TextList(fileName,chunk_size):
         nodeList = []
         document = Document(fileName)
+        # section = document.sections[0]
+        # header = section.header
+        # print(header)
         for block in iter_block_items(document):                        
             if isinstance(block, Paragraph):
                 if block.text == '':
@@ -101,7 +106,6 @@ def parse_file(fileName,chunk_size):
                 else:
                     # 子节点，                                     
                     childs.append(item)
-
             else:
                 # 非分隔符,作为叶子节点
                 childs.append(item)
@@ -128,7 +132,7 @@ def parse_file(fileName,chunk_size):
         sumCnt = 0        
         for idx,item in enumerate(textTree):
             cnt = caculateCharCount(item)
-            if sumCnt+cnt > chunk_size*1.2:
+            if sumCnt+cnt >= chunk_size:
                 if idx ==0:
                     # 有子节点进一步切分
                     if ('childs' in item.keys()):
@@ -168,6 +172,24 @@ def parse_file(fileName,chunk_size):
             for item in node['childs']:
                 retStr += r'\n'+node2str(item)
         return retStr
+    def getPathByNode(node)->str:
+        maxCharCount = 20
+        retStr = ''        
+        if ('text' in node.keys()):
+            nodeText = node['text'] if len(node['text']) <=maxCharCount else node['text'][0:maxCharCount//2] +'...'+node['text'][-maxCharCount//2:]    
+            retStr= nodeText
+        if 'childs' in node.keys():        
+            # 上级文本为空或子节点数量为1时继续向下查找
+            if retStr =='' or len(node['childs']) ==1 :
+                childPathList = []
+                for child in node['childs']:
+                    childPathList.append(getPathByNode(child))
+                childPathStr = ''.join(childPathList) 
+                if retStr == '':
+                    retStr = childPathStr
+                else:
+                    retStr += '->' +childPathStr
+        return retStr
 
     allCutStyles = ['Heading 1','Heading 2','Heading 3','Heading 4','Heading 5','Table','Normal']
     # 获取文本块列表
@@ -184,10 +206,15 @@ def parse_file(fileName,chunk_size):
     idx =0
     while len(toCutTree) >0:
         cutedTree,toCutTree = cutTreeOnce(toCutTree,chunk_size)
+        # 根据切出的节点列表，合并字符串
         cutedStr =''
         for item in cutedTree:
            cutedStr += node2str(item)+r'\n'
-        nodeList.append((cutedStr,{}))
+        # 以节点列表中首个节点的路径作为切片路径
+        cutedPath = getPathByNode(cutedTree[0])
+        if len(cutedPath) >chunk_size//4:
+            cutedPath = cutedPath[0:chunk_size//4]
+        nodeList.append((cutedStr,{'path':cutedPath}))
         # print(str(idx),':',cutedStr)
         idx +=1
     # print('切片完成')

@@ -23,7 +23,7 @@ from  docx_node_parser import docxNodeParser
 
 # os.environ['CURL_CA_BUNDLE'] = ''
 # os.environ['REQUESTS_CA_BUNDLE'] = ''
-Settings.chunk_size = 1024
+Settings.chunk_size = 512
 Settings.chunk_overlap =20
 Settings.llm = Ollama(base_url="http://localhost:11434", model="qwen2:latest", request_timeout=600.0)
 Settings.embed_model = OllamaEmbedding(
